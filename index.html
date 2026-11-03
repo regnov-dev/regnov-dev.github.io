@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bazaar</title>
+<style>
+  :root { --bg:#f3f4f6; --surface:#fff; --text:#111827; --muted:#6b7280; --border:#e5e7eb; --accent:#f97316; --primary:#2563eb; --danger:#dc2626; --success:#16a34a; --radius:12px; --shadow:0 1px 3px rgba(0,0,0,.08); --shadow-lg:0 10px 30px rgba(0,0,0,.12); --chat-bg:#f8f9fa; }
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--text); font-size:15px; line-height:1.5; min-height:100dvh; overflow-x:hidden; display:flex; flex-direction:column; padding-bottom:70px; }
+  @media (min-width:768px) { body { padding-bottom:0; } }
+  button { font-family:inherit; cursor:pointer; border:none; background:none; color:inherit; }
+  input,select,textarea { font-family:inherit; font-size:inherit; }
+  img { display:block; max-width:100%; }
+  .hidden { display:none !important; }
+  .flex { display:flex; } .flex-col { flex-direction:column; } .items-center { align-items:center; } .justify-between { justify-content:space-between; } .justify-center { justify-content:center; }
+  .gap-1 { gap:4px; } .gap-2 { gap:8px; } .gap-3 { gap:12px; } .gap-4 { gap:16px; }
+  .text-sm { font-size:13px; } .text-xs { font-size:11px; } .text-muted { color:var(--muted); }
+  .font-bold { font-weight:700; } .font-semibold { font-weight:600; } .truncate { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .w-full { width:100%; }
+  
+  .header { position:fixed; bottom:0; left:0; right:0; z-index:100; background:var(--surface); border-top:1px solid var(--border); padding:8px 12px 12px; box-shadow:0 -2px 10px rgba(0,0,0,0.05); }
+  @media (min-width:768px) { .header { position:sticky; top:0; bottom:auto; border-top:none; border-bottom:1px solid var(--border); padding:10px 16px; box-shadow:var(--shadow); } }
+  .header-row { display:flex; align-items:center; gap:8px; max-width:1280px; margin:0 auto; }
+  .logo { font-size:22px; font-weight:800; color:var(--accent); letter-spacing:-0.5px; cursor:pointer; }
+  .search-box { display:none; flex:1; align-items:center; background:var(--bg); border:1px solid var(--border); border-radius:24px; padding:0 14px; height:42px; }
+  @media (min-width:768px) { .search-box { display:flex; } }
+  .search-box input { flex:1; border:none; outline:none; background:transparent; font-size:14px; padding:8px 0; }
+  .header-nav { display:flex; flex:1; justify-content:space-around; align-items:center; gap:0; }
+  @media (min-width:768px) { .header-nav { flex:none; gap:4px; } }
+  .nav-btn { padding:6px 8px; border-radius:10px; font-size:11px; font-weight:600; color:var(--muted); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; position:relative; }
+  @media (min-width:768px) { .nav-btn { flex-direction:row; font-size:13px; padding:8px 12px; border-radius:20px; gap:6px; } }
+  .nav-btn:hover { color:var(--text); }
+  @media (min-width:768px) { .nav-btn:hover { background:var(--bg); } }
+  .nav-btn.accent { color:var(--accent); }
+  .nav-btn.accent .icon-bg { background:var(--accent); color:#fff; border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center; margin-top:-16px; border:3px solid var(--surface); box-shadow:0 4px 8px rgba(249,115,22,0.3); }
+  @media (min-width:768px) { .nav-btn.accent { flex-direction:row; background:var(--accent); color:#fff; } .nav-btn.accent .icon-bg { background:none; width:auto; height:auto; border:none; box-shadow:none; margin:0; } }
+  .nav-btn span.icon { font-size:20px; }
+  @media (min-width:768px) { .nav-btn span.icon { font-size:16px; } }
+  .badge { position:absolute; top:0; right:4px; background:var(--danger); color:#fff; font-size:10px; font-weight:700; min-width:16px; height:16px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; padding:0 4px; }
+  @media (min-width:768px) { .badge { position:static; margin-left:4px; } }
+
+  .menu-toggle { font-size:24px; padding:4px; display:block; margin-left:auto; color:var(--text); }
+  @media (min-width:768px) { .menu-toggle { display:none; } }
+
+  .page { display:none; max-width:1280px; margin:0 auto; padding:16px; flex:1; width:100%; }
+  .page.active { display:block; }
+  .layout-grid { display:grid; grid-template-columns:1fr; gap:24px; }
+  @media (min-width:900px) { .layout-grid { grid-template-columns:240px 1fr; } }
+  .sidebar { display:none; }
+  @media (min-width:900px) { .sidebar { display:block; } }
+  .filter-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; position:sticky; top:80px; }
+  .filter-title { font-size:13px; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+  .filter-item { display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer; color:var(--muted); }
+  .product-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+  @media (min-width:640px) { .product-grid { grid-template-columns:repeat(3,1fr); gap:16px; } }
+  @media (min-width:1024px) { .product-grid { grid-template-columns:repeat(4,1fr); } }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; cursor:pointer; transition:transform 0.15s; display:flex; flex-direction:column; }
+  .card:hover { transform:translateY(-2px); box-shadow:var(--shadow-lg); }
+  .card-img { width:100%; aspect-ratio:1; object-fit:cover; background:#e5e7eb; }
+  .card-body { padding:12px; flex:1; display:flex; flex-direction:column; }
+  .card-title { font-size:14px; font-weight:600; margin-bottom:4px; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .card-price { font-size:18px; font-weight:800; }
+  @keyframes shimmer { 0% { background-position:-468px 0; } 100% { background-position:468px 0; } }
+  .skel { background:#e5e7eb; background-image:linear-gradient(to right,#e5e7eb 0%,#f3f4f6 20%,#e5e7eb 40%,#e5e7eb 100%); background-repeat:no-repeat; background-size:800px 100%; animation:shimmer 1.5s infinite linear; border-radius:var(--radius); }
+  
+  /* TABS */
+  .thread-tabs { display:flex; border-bottom:1px solid var(--border); flex-shrink:0; align-items:center; position:relative; background:var(--surface); }
+  .thread-tab { flex:1; padding:14px; text-align:center; font-weight:600; font-size:13px; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; }
+  .thread-tab.active { color:var(--primary); border-color:var(--primary); }
+
+  /* INBOX */
+  .inbox-layout { display:flex; flex-direction:column; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); height:calc(100vh - 80px); overflow:hidden; box-shadow:var(--shadow-lg); position:relative; }
+  @media (min-width:768px) { .inbox-layout { flex-direction:row; height:700px; } }
+  
+  .thread-list-wrap { width:100%; height:100%; background:var(--surface); display:flex; flex-direction:column; overflow:hidden; }
+  @media (min-width:768px) { .thread-list-wrap { width:360px; flex-shrink:0; border-right:1px solid var(--border); } }
+  @media (max-width:767px) { .inbox-layout.mobile-chat-open .thread-list-wrap { display:none; } }
+  
+  /* Inbox Tabs at bottom */
+  .thread-list-wrap .thread-tabs {
+    border-bottom: none;
+    border-top: 1px solid var(--border);
+    margin-top: auto;
+    order: 2;
+  }
+  .thread-list { flex:1; overflow-y:auto; order: 1; }
+  
+  .thread-item { display:flex; gap:12px; padding:16px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.15s; position:relative; }
+  .thread-item:hover, .thread-item.active { background:#f8f9fa; }
+  .thread-item.active { border-left:3px solid var(--primary); padding-left:13px; }
+  .thread-item.blocked { background:#fef2f2; }
+  .thread-item .seller-clickable { cursor:pointer; }
+  .thread-item .seller-clickable:hover { text-decoration:underline; color:var(--primary); }
+  
+  .chat-view { display:none; flex-direction:column; background:var(--chat-bg); overflow:hidden; height:100%; flex:1; position:relative; }
+  @media (min-width:768px) { .chat-view { display:flex; } }
+  @media (max-width:767px) { .inbox-layout.mobile-chat-open .chat-view { display:flex; position:fixed; top:0; left:0; right:0; bottom:70px; z-index:150; border-radius:0; } }
+  
+  /* CHAT - header at bottom */
+  #chatActive { display:flex; flex-direction:column; height:100%; }
+  #chatActive .chat-msgs { order:1; }
+  #chatActive .chat-header { order:2; border-top:1px solid var(--border); border-bottom:none; }
+  #chatActive .chat-input-area { order:3; }
+  #chatActive .blocked-banner { order:4; }
+
+  .chat-header { padding:12px 16px; background:var(--surface); display:flex; align-items:center; gap:12px; flex-shrink:0; position:relative; z-index:10; }
+  .chat-header-info { flex:1; cursor:pointer; overflow:hidden; }
+  .chat-header-info:hover .chat-seller-name { text-decoration:underline; }
+  .chat-msgs { flex:1; padding:16px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; }
+  .msg-group { display:flex; flex-direction:column; margin-bottom:12px; max-width:75%; min-width:0; }
+  .msg-group.me { align-self:flex-end; align-items:flex-end; }
+  .msg-group.them { align-self:flex-start; align-items:flex-start; }
+  .msg-bubble { padding:12px 16px; border-radius:18px; font-size:14.5px; line-height:1.45; position:relative; word-wrap:break-word; overflow-wrap:break-word; word-break:break-word; margin-bottom:2px; cursor:pointer; }
+  .msg-group.me .msg-bubble { background:var(--primary); color:#fff; border-top-right-radius:4px; }
+  .msg-group.them .msg-bubble { background:var(--surface); color:var(--text); border-top-left-radius:4px; border:1px solid var(--border); }
+  .msg-group .msg-bubble:first-child { border-top-left-radius:18px; border-top-right-radius:18px; }
+  .msg-group.me .msg-bubble:last-child { border-bottom-right-radius:4px; }
+  .msg-group.them .msg-bubble:last-child { border-bottom-left-radius:4px; }
+  .msg-bubble img { max-width:100%; border-radius:8px; margin-top:4px; display:block; }
+  .msg-meta { font-size:11px; color:var(--muted); display:flex; align-items:center; gap:4px; margin-top:2px; padding:0 6px; }
+  .date-divider { text-align:center; margin:24px 0 16px; }
+  .date-divider span { background:rgba(255,255,255,0.8); border:1px solid var(--border); color:var(--muted); font-size:11px; font-weight:600; padding:4px 12px; border-radius:12px; text-transform:uppercase; }
+  .chat-input-area { padding:12px 16px; background:var(--surface); border-top:1px solid var(--border); display:flex; gap:8px; align-items:center; position:relative; flex-shrink:0; }
+  .chat-input-area input[type="text"] { flex:1; padding:12px 16px; border:1px solid var(--border); border-radius:24px; font-size:15px; outline:none; background:var(--bg); }
+  .blocked-banner { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; background:var(--surface); border-top:1px solid var(--border); text-align:center; }
+  .blocked-banner p { color:var(--danger); font-weight:600; margin-bottom:12px; }
+  .empty-chat { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--muted); text-align:center; padding:24px; }
+  
+  /* MENUS */
+  .attachment-menu { position:absolute; top:55px; right:16px; background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.2); display:flex; flex-direction:column; overflow:hidden; z-index:60; min-width:200px; }
+  .attachment-menu::before { content:''; position:absolute; top:-6px; right:18px; width:12px; height:12px; background:var(--surface); border-top:1px solid var(--border); border-right:1px solid var(--border); transform:rotate(-45deg); }
+  .attachment-menu .attachment-option { padding:14px 18px; display:flex; align-items:center; gap:12px; cursor:pointer; font-weight:600; font-size:14px; border-bottom:1px solid var(--border); }
+  .attachment-menu .attachment-option:last-child { border-bottom:none; }
+  .attachment-menu .attachment-option:hover { background:var(--bg); }
+  .attachment-menu .attachment-option .icon { font-size:18px; width:24px; text-align:center; }
+  .attachment-menu .attachment-option.danger { color:var(--danger); }
+  .attachment-menu .attachment-option.success { color:var(--success); }
+  .attachment-menu .attachment-divider { height:1px; background:var(--border); margin:4px 0; }
+  .attachment-menu.bottom { top:auto; bottom:70px; right:auto; left:16px; }
+  .attachment-menu.bottom::before { top:auto; bottom:-6px; transform:rotate(135deg); left:18px; right:auto; }
+  
+  /* SIDE MENU & DRAWERS */
+  .side-menu { position:fixed; top:0; right:0; bottom:0; width:280px; background:var(--surface); z-index:400; transform:translateX(100%); transition:transform 0.3s ease; display:flex; flex-direction:column; box-shadow:-4px 0 20px rgba(0,0,0,0.1); }
+  .side-menu.open { transform:translateX(0); }
+  .menu-item { padding:16px 20px; border-bottom:1px solid var(--border); font-weight:600; color:var(--text); cursor:pointer; display:flex; align-items:center; gap:12px; }
+  .menu-item:hover { background:var(--bg); }
+  .drawer { position:fixed; top:0; left:0; bottom:0; width:100%; max-width:320px; background:var(--surface); z-index:400; display:flex; flex-direction:column; transform:translateX(-100%); transition:transform 0.3s ease; box-shadow:4px 0 20px rgba(0,0,0,0.1); }
+  .drawer.open { transform:translateX(0); }
+  .drawer-header { padding:24px; border-bottom:1px solid var(--border); font-weight:800; font-size:20px; color:var(--accent); display:flex; justify-content:space-between; align-items:center; }
+
+  .dashboard-tabs { display:flex; gap:8px; border-bottom:1px solid var(--border); margin-bottom:24px; }
+  .tab { padding:12px 16px; font-weight:600; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; }
+  .tab.active { color:var(--primary); border-color:var(--primary); }
+  .order-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin-bottom:16px; }
+  
+  /* MODALS & OVERLAYS */
+  .overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:300; display:flex; align-items:flex-end; justify-content:center; }
+  @media (min-width:640px) { .overlay { align-items:center; padding:20px; } }
+  .modal { background:var(--surface); width:100%; max-width:520px; max-height:90dvh; border-radius:20px 20px 0 0; display:flex; flex-direction:column; animation:slideUp 0.3s; }
+  @media (min-width:640px) { .modal { border-radius:var(--radius); } }
+  @keyframes slideUp { from { transform:translateY(100%); } to { transform:translateY(0); } }
+  .modal-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+  .modal-header button { min-width:44px; min-height:44px; display:flex; align-items:center; justify-content:center; font-size:22px; }
+  .modal-body { padding:20px; overflow-y:auto; flex:1; }
+  
+  /* FORMS & BUTTONS */
+  .field { margin-bottom:16px; }
+  .field label { display:block; font-size:13px; font-weight:600; margin-bottom:6px; }
+  .input { width:100%; padding:12px; border:1px solid var(--border); border-radius:8px; font-size:15px; outline:none; }
+  .input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(37,99,235,.1); }
+  .btn { padding:12px 20px; border-radius:10px; font-size:14px; font-weight:600; min-height:48px; display:inline-flex; align-items:center; justify-content:center; }
+  .btn-primary { background:var(--primary); color:#fff; }
+  .btn-accent { background:var(--accent); color:#fff; }
+  .btn-outline { background:var(--surface); border:1px solid var(--border); }
+  .btn-danger { background:var(--danger); color:#fff; }
+  .btn-success { background:var(--success); color:#fff; }
+  .btn-block { width:100%; }
+  .btn-circle { width:44px; height:44px; border-radius:50%; padding:0; display:flex; align-items:center; justify-content:center; }
+  .toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(120px); background:#111827; color:#fff; padding:12px 24px; border-radius:24px; font-size:14px; font-weight:600; z-index:9500; opacity:0; transition:transform 0.3s cubic-bezier(.2,.9,.3,1.2),opacity 0.3s; display:flex; align-items:center; gap:8px; pointer-events:none; }
+  .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+  .toast.success { background:var(--success); }
+  .toast.error { background:var(--danger); }
+  
+  #debugToggle { z-index:9990 !important; position:fixed; bottom:140px; right:12px; width:48px; height:48px; border-radius:50%; background:#dc2626; color:#fff; font-size:20px; box-shadow:0 4px 12px rgba(0,0,0,0.3); display:flex; align-items:center; justify-content:center; }
+  #debugPanel { z-index:9999 !important; }
+</style>
+</head>
+<body>
+
+<button id="debugToggle" onclick="toggleDebug()" title="Debug Logs">🐞</button>
+
+<div id="debugPanel" style="display:none;position:fixed;inset:0;background:#0f172a;color:#e2e8f0;font-family:monospace;font-size:11px;flex-direction:column;">
+  <div style="padding:12px;background:#1e293b;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #334155;">
+    <b style="color:#38bdf8;font-size:14px;">🐞 Debug Log (<span id="logCount">0</span>)</b>
+    <div style="display:flex;gap:8px;">
+      <button onclick="copyAllLogs()" style="background:#2563eb;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;">📋 Copy</button>
+      <button onclick="clearLogs()" style="background:#475569;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;">Clear</button>
+      <button onclick="toggleDebug()" style="background:#dc2626;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;">✕</button>
+    </div>
+  </div>
+  <div id="logContent" style="flex:1;overflow-y:auto;padding:8px;"></div>
+  <textarea id="logFallback" style="position:absolute;left:-9999px;top:0;" readonly></textarea>
+</div>
+
+<header class="header">
+  <div class="header-row">
+    <div class="logo" onclick="navigate('/')">bazaar</div>
+    <div class="search-box"><span style="margin-right:8px;">🔍</span><input type="text" id="searchInput" placeholder="Search..." oninput="renderProducts()"></div>
+    <nav class="header-nav">
+      <button class="nav-btn" onclick="navigate('/')"><span class="icon">🏠</span><span>Home</span></button>
+      <button class="nav-btn" onclick="navigate('/inbox')"><span class="icon">💬</span><span>Inbox</span><span id="inboxBadge" class="badge hidden">0</span></button>
+      <button class="nav-btn" id="navProfileBtn" onclick="handleProfileClick()"><span class="icon">👤</span><span id="navProfileText">Sign In</span></button>
+      <button class="nav-btn" onclick="openCart()"><span class="icon">🛒</span><span>Cart</span><span class="badge hidden" id="cartBadge">0</span></button>
+      <button class="nav-btn accent" onclick="openSell()"><span class="icon-bg"><span class="icon">+</span></span><span class="hidden md:inline">Sell</span></button>
+    </nav>
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+  </div>
+</header>
+
+<main>
+  <div id="page-home" class="page active">
+    <div class="layout-grid">
+      <aside class="sidebar">
+        <div class="filter-card">
+          <div class="filter-title">Category</div>
+          <label class="filter-item"><input type="checkbox" value="Electronics" class="filter-cb"> Electronics</label>
+          <label class="filter-item"><input type="checkbox" value="Vehicles" class="filter-cb"> Vehicles</label>
+          <label class="filter-item"><input type="checkbox" value="Furniture" class="filter-cb"> Furniture</label>
+          <button class="btn btn-outline w-full" style="margin-top:16px;" onclick="clearFilters()">Clear</button>
+        </div>
+      </aside>
+      <div style="display:flex; flex-direction:column; height: 100%;">
+        <div class="thread-tabs" style="margin-bottom: 16px;">
+          <div class="thread-tab active" onclick="switchHomeTab('all', this)">All Listings</div>
+          <div class="thread-tab" onclick="switchHomeTab('saved', this)">Saved Items</div>
+          <div class="thread-tab" onclick="switchHomeTab('recent', this)">Recently Viewed</div>
+        </div>
+
+        <div class="flex justify-between items-center" style="margin-bottom:16px;">
+          <h2 id="resultsCount" class="font-bold">Loading...</h2>
+        </div>
+        
+        <div id="productGrid" class="product-grid" style="flex:1;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="page-inbox" class="page">
+    <div class="inbox-layout" id="inboxLayout">
+      <div class="thread-list-wrap">
+        <div class="thread-list" id="threadList"></div>
+        <!-- Inbox Tabs moved to bottom -->
+        <div class="thread-tabs">
+          <div class="thread-tab active" onclick="switchThreadTab('inbox', this)">Inbox</div>
+          <div class="thread-tab" onclick="switchThreadTab('archived', this)">Archived</div>
+          <button class="btn btn-outline" style="border:none; padding:8px; font-size:20px; margin-right:8px;" onclick="toggleInboxMenu(event)">⋮</button>
+          <div id="inboxMenu" class="attachment-menu hidden" onclick="event.stopPropagation()" style="right:8px; bottom:45px; top:auto;">
+            <div class="attachment-option" onclick="markAllRead()"><span class="icon">✅</span> Mark all as read</div>
+            <div class="attachment-divider"></div>
+            <div class="attachment-option danger" onclick="deleteAllArchived()"><span class="icon">🗑️</span> Delete all archived</div>
+          </div>
+        </div>
+      </div>
+      <div class="chat-view" id="chatView">
+        <div id="chatEmpty" class="empty-chat"><div style="font-size:64px; margin-bottom:16px; opacity:0.5;">💬</div><h2 style="font-size:24px; margin-bottom:8px; color:var(--text);">Your Messages</h2><p style="max-width:280px; margin-bottom:24px;">When you message a seller or receive an offer, it will appear here.</p><button class="btn btn-primary" onclick="navigate('/')">Browse Listings</button></div>
+        <div id="chatActive" class="hidden">
+          <div class="chat-header">
+            <button onclick="closeChatMobile()" class="btn btn-outline" style="min-height:36px;padding:4px 12px;font-size:13px; display:none; border:none;" id="chatBackBtn">← Back</button>
+            <img id="chatSellerAvatar" src="" style="width:44px;height:44px;border-radius:50%;flex-shrink:0;cursor:pointer;" onclick="openSellerProfile()">
+            <div class="chat-header-info" onclick="openSellerProfile()"><div class="font-bold chat-seller-name" id="chatSellerName"></div><div class="text-xs text-muted">View Profile</div></div>
+            <button class="btn btn-outline" style="border:none; padding:8px; font-size:20px;" onclick="toggleChatMenu(event)">⋮</button>
+            <div id="chatMenu" class="attachment-menu hidden" onclick="event.stopPropagation()" style="bottom:55px; top:auto;"></div>
+          </div>
+          <div class="chat-msgs" id="chatMessages"></div>
+          <div class="chat-input-area" id="chatInputArea">
+            <button class="btn btn-circle btn-outline" style="border:none; background:transparent; font-size:20px;" onclick="toggleAttachmentMenu()">📎</button>
+            <div id="attachmentMenu" class="attachment-menu bottom hidden"><div class="attachment-option" onclick="document.getElementById('chatFileInput').click()"><span class="icon">🖼️</span> Send Photo</div><div class="attachment-option" onclick="promptOffer()"><span class="icon">💰</span> Make Offer</div></div>
+            <input type="file" id="chatFileInput" class="hidden" accept="image/*" onchange="handleChatImage(event)">
+            <input type="text" id="chatInput" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendMessage()">
+            <button class="btn btn-circle btn-primary" onclick="sendMessage()" style="font-size:20px;">➤</button>
+          </div>
+          <div class="blocked-banner hidden" id="chatBlockedBanner"><p>🚫 You blocked this user</p><button class="btn btn-outline" onclick="unblockUser()">Unblock</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="page-profile" class="page">
+    <div class="flex items-center gap-4" style="margin-bottom:32px;">
+      <div id="profileAvatar" style="width:80px; height:80px; border-radius:50%; background:#dbeafe; color:var(--primary); display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:700;"></div>
+      <div><h2 id="profileName" class="font-bold" style="font-size:24px;"></h2><p id="profileEmail" class="text-muted"></p><button class="btn btn-outline" style="min-height:32px; padding:4px 12px; font-size:12px; margin-top:8px;" onclick="handleLogout()">Sign Out</button></div>
+    </div>
+    <div class="dashboard-tabs"><div class="tab active" onclick="switchProfileTab('listings', this)">My Listings</div><div class="tab" onclick="switchProfileTab('orders', this)">Order History</div></div>
+    <div id="tab-listings"><div id="myListings" class="product-grid"></div><div id="noListings" class="hidden text-muted" style="padding:40px; text-align:center;">You have no active listings.</div></div>
+    <div id="tab-orders" class="hidden"><div id="orderHistory"></div><div id="noOrders" class="hidden text-muted" style="padding:40px; text-align:center;">You haven't placed any orders yet.</div></div>
+  </div>
+
+  <div id="page-terms" class="page"><div style="max-width:800px;margin:0 auto;background:var(--surface);padding:32px;border-radius:var(--radius);"><h1>Terms of Service</h1></div></div>
+  <div id="page-privacy" class="page"><div style="max-width:800px;margin:0 auto;background:var(--surface);padding:32px;border-radius:var(--radius);"><h1>Privacy Policy</h1></div></div>
+</main>
+
+<div id="menuOverlay" class="overlay hidden" onclick="toggleMenu()" style="background:rgba(0,0,0,0.4); z-index:395;"></div>
+<div id="sideMenu" class="side-menu">
+  <div style="padding:24px;border-bottom:1px solid var(--border);font-weight:800;font-size:20px;color:var(--accent);display:flex;justify-content:space-between;align-items:center;">
+    bazaar
+    <button onclick="toggleMenu()" style="font-size:20px;color:var(--muted);">✕</button>
+  </div>
+  <div class="menu-item" onclick="navigate('/');toggleMenu()">🏠 Home</div>
+  <div class="menu-item" onclick="navigate('/inbox');toggleMenu()">💬 Messages</div>
+  <div class="menu-item" onclick="navigate('/profile');toggleMenu()">👤 Account</div>
+  <div class="menu-item" onclick="navigate('/terms');toggleMenu()">📄 Terms</div>
+  <div class="menu-item" onclick="navigate('/privacy');toggleMenu()">🔒 Privacy</div>
+</div>
+
+<div id="cartOverlay" class="overlay hidden" onclick="closeCart()"></div>
+<div id="cartDrawer" class="drawer">
+  <div class="drawer-header">
+    Cart
+    <button onclick="closeCart()" style="font-size:20px;color:var(--muted);">✕</button>
+  </div>
+  <div class="modal-body" id="cartItems" style="flex:1; padding:20px;"></div>
+  <div style="padding:20px;border-top:1px solid var(--border);">
+    <div class="flex justify-between font-bold" style="margin-bottom:12px;"><span>Total:</span><span id="cartTotal">$0.00</span></div>
+    <button class="btn btn-primary btn-block" onclick="startCheckout()">Checkout</button>
+  </div>
+</div>
+
+<div id="sellerProfileOverlay" class="overlay hidden" onclick="closeModal('sellerProfileOverlay')">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:400px;">
+    <div class="modal-header"><h3>Seller Profile</h3><button onclick="closeModal('sellerProfileOverlay')">✕</button></div>
+    <div class="modal-body" style="text-align:center;">
+      <img id="sellerProfileAvatar" src="" style="width:100px;height:100px;border-radius:50%;margin:0 auto 16px;">
+      <h2 id="sellerProfileName" class="font-bold" style="font-size:24px;"></h2>
+      <div class="text-muted" style="margin-bottom:16px;"><span style="color:var(--success);">★★★★★</span> 4.8 (128 reviews)</div>
+      <div class="flex justify-between" style="background:var(--bg); padding:16px; border-radius:12px; margin-bottom:24px;">
+        <div><div class="font-bold">3 yrs</div><div class="text-xs text-muted">Member</div></div>
+        <div><div class="font-bold">142</div><div class="text-xs text-muted">Sold</div></div>
+        <div><div class="font-bold">1 hr</div><div class="text-xs text-muted">Reply</div></div>
+      </div>
+      <button class="btn btn-block" id="sellerBlockBtn" onclick="toggleBlockFromProfile()">Block User</button>
+    </div>
+  </div>
+</div>
+
+<div id="checkoutOverlay" class="overlay hidden" onclick="closeModal('checkoutOverlay')"><div class="modal" onclick="event.stopPropagation()"><div class="modal-header"><h3 id="checkoutTitle">Checkout</h3><button onclick="closeModal('checkoutOverlay')">✕</button></div><div class="modal-body" id="checkoutBody"></div></div></div>
+<div id="sellOverlay" class="overlay hidden" onclick="closeModal('sellOverlay')"><div class="modal" onclick="event.stopPropagation()"><div class="modal-header"><h3 id="sellTitle">List an Item</h3><button onclick="closeModal('sellOverlay')">✕</button></div><div class="modal-body" id="sellBody"></div></div></div>
+<div id="authOverlay" class="overlay hidden" onclick="closeModal('authOverlay')"><div class="modal" onclick="event.stopPropagation()"><div class="modal-header"><h3>Sign In</h3><button onclick="closeModal('authOverlay')">✕</button></div><div class="modal-body"><form onsubmit="handleAuth(event)"><div class="field"><label>Email</label><input type="email" class="input" id="authEmail" required></div><div class="field"><label>Password</label><input type="password" class="input" id="authPass" required></div><button type="submit" class="btn btn-primary btn-block">Continue</button></form></div></div></div>
+<div id="detailOverlay" class="overlay hidden" onclick="closeModal('detailOverlay')"><div class="modal" onclick="event.stopPropagation()" id="detailModal"></div></div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+  window.__logs = [];
+  let toastTimer = null;
+  window.log = function(type, message) { window.__logs.push({ time: new Date().toLocaleTimeString(), type, message }); };
+  window.toggleDebug = function() { const p = document.getElementById('debugPanel'); if (p.style.display === 'flex') p.style.display = 'none'; else p.style.display = 'flex'; };
+  window.copyAllLogs = function() { alert(JSON.stringify(window.__logs, null, 2)); };
+  window.addEventListener('error', (e) => log('error', e.message));
+
+  const KEYS = { user: 'bazaar_user', cart: 'bazaar_cart', listings: 'bazaar_listings', threads: 'bazaar_threads', orders: 'bazaar_orders' };
+  let state = { user: null, cart: [], listings: [], threads: [], orders: [], activeThreadId: null, currentPath: window.location.pathname, isLoading: true, threadTab: 'inbox', homeTab: 'all' };
+
+  window.getThread = function(id) { if (!id) return null; const t = state.threads.find(x => x.id === id); if (!t) { state.activeThreadId = null; return null; } return t; };
+  window.save = function(key) { try { localStorage.setItem(KEYS[key], JSON.stringify(state[key])); } catch(e) {} };
+  window.showToast = function(msg, type) {
+    const t = document.getElementById('toast'); if (!t) return;
+    if (toastTimer) clearTimeout(toastTimer);
+    t.textContent = msg; t.className = 'toast';
+    void t.offsetWidth;
+    t.className = 'toast show' + (type === 'success' ? ' success' : type === 'error' ? ' error' : '');
+    toastTimer = setTimeout(function() { t.className = 'toast'; }, 2200);
+  };
+
+  window.init = function() {
+    ['user', 'cart', 'listings', 'threads', 'orders'].forEach(key => {
+      const saved = localStorage.getItem(KEYS[key]);
+      if (saved) { try { state[key] = JSON.parse(saved); } catch(e) {} }
+    });
+    if (!state.listings.length) {
+      state.listings = Array.from({length: 16}).map((_, i) => ({
+        id: 'seed-' + i, title: ['Vintage Camera', 'MacBook Pro M2', 'Road Bike', 'Ergonomic Chair'][i % 4],
+        price: Math.floor(Math.random() * 500) + 50, category: ['Electronics', 'Vehicles', 'Furniture'][i % 3],
+        seller: 'Demo Seller', rating: 4.8, reviews: 124, description: 'Excellent condition.',
+        img: `https://images.unsplash.com/photo-${['1498049794561-7780e7231661','1533473359331-0135ef1b58bf','1505843490538-5133c6c7d0e1'][i % 3]}?w=500&q=80`,
+        status: 'active', createdAt: Date.now()
+      }));
+      save('listings');
+    }
+    if (!state.threads.length) {
+      state.threads = [
+        { id: 'thread-1', listingId: 'seed-0', buyerId: 'demo', sellerId: 'demo-seller', sellerName: 'John Doe', listingTitle: 'Vintage Camera', archived: false, blocked: false, messages: [
+          { id: 'm1', senderId: 'demo-seller', text: 'Hi, is this still available?', time: Date.now() - 86400000, read: true },
+          { id: 'm2', senderId: 'demo-seller', text: 'I can do $300 if you pick it up today.', time: Date.now() - 3600000, read: false }
+        ]}
+      ];
+      save('threads');
+    }
+    updateAuthUI(); updateCartUI(); updateInboxBadge(); renderSkeletons();
+    setTimeout(() => { state.isLoading = false; renderProducts(); if (state.currentPath === '/inbox') renderInbox(); if (state.currentPath === '/profile') renderProfile(); }, 300);
+    handleRoute();
+    window.addEventListener('popstate', handleRoute);
+    document.querySelectorAll('.filter-cb').forEach(cb => cb.addEventListener('change', renderProducts));
+
+    document.addEventListener('click', function(e) {
+      ['inboxMenu', 'chatMenu', 'attachmentMenu'].forEach(function(id) {
+        var m = document.getElementById(id);
+        if (m && !m.classList.contains('hidden') && !m.contains(e.target) && !e.target.closest('[onclick*="' + id + '"]')) m.classList.add('hidden');
+      });
+      ['detailOverlay', 'sellerProfileOverlay', 'checkoutOverlay', 'sellOverlay', 'authOverlay', 'cartOverlay'].forEach(function(id) {
+        var o = document.getElementById(id);
+        if (o && !o.classList.contains('hidden') && e.target === o) {
+          if (id === 'cartOverlay') closeCart();
+          else closeModal(id);
+        }
+      });
+    }, true);
+  };
+
+  window.navigate = function(path) { if (path === state.currentPath) return; history.pushState({}, '', path); state.currentPath = path; handleRoute(); };
+  window.handleRoute = function() {
+    const path = window.location.pathname;
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const routes = { '/': 'home', '/inbox': 'inbox', '/profile': 'profile', '/terms': 'terms', '/privacy': 'privacy' };
+    const page = routes[path] || 'home';
+    document.getElementById('page-' + page).classList.add('active');
+    if (path === '/profile' && !state.user) { openModal('authOverlay'); navigate('/'); return; }
+    if (page === 'inbox') renderInbox();
+    if (page === 'profile') renderProfile();
+    window.scrollTo(0, 0);
+  };
+  window.toggleMenu = function() { const m = document.getElementById('sideMenu'), o = document.getElementById('menuOverlay'); const isOpen = m.classList.contains('open'); m.classList.toggle('open', !isOpen); o.classList.toggle('hidden', isOpen); };
+  window.openModal = function(id) { const el = document.getElementById(id); if (!el) return; el.classList.remove('hidden'); document.body.style.overflow = 'hidden'; };
+  window.closeModal = function(id) { const el = document.getElementById(id); if (!el) return; el.classList.add('hidden'); document.body.style.overflow = ''; };
+
+  window.handleProfileClick = function() { if (state.user) navigate('/profile'); else openModal('authOverlay'); };
+  window.handleAuth = function(e) { e.preventDefault(); const email = document.getElementById('authEmail').value; state.user = { name: email.split('@')[0], email }; save('user'); updateAuthUI(); closeModal('authOverlay'); navigate('/profile'); };
+  window.handleLogout = function() { state.user = null; save('user'); updateAuthUI(); navigate('/'); };
+  window.updateAuthUI = function() { const el = document.getElementById('navProfileText'); if (el) el.textContent = state.user ? state.user.name : 'Sign In'; };
+
+  window.renderSkeletons = function() { document.getElementById('productGrid').innerHTML = Array(8).fill(0).map(() => '<div class="skel" style="height:280px;"></div>').join(''); };
+  window.renderProducts = function() {
+    if (state.isLoading) return;
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    const filters = Array.from(document.querySelectorAll('.filter-cb:checked')).map(cb => cb.value);
+    let filtered = state.listings.filter(l => { 
+      if (l.status === 'sold') return false; 
+      if (q && !l.title.toLowerCase().includes(q)) return false; 
+      if (filters.length > 0 && !filters.includes(l.category)) return false; 
+      if (state.homeTab === 'saved') return false; 
+      return true; 
+    });
+    document.getElementById('resultsCount').textContent = filtered.length + ' items';
+    document.getElementById('productGrid').innerHTML = filtered.map(l => `<div class="card" onclick="openDetail('${l.id}')"><img src="${l.img}" class="card-img"><div class="card-body"><div class="card-title">${l.title}</div><div class="card-price">$${l.price}</div></div></div>`).join('');
+  };
+  window.switchHomeTab = function(tab, el) {
+    state.homeTab = tab;
+    document.querySelectorAll('#page-home .thread-tab').forEach(el => el.classList.remove('active'));
+    if (el) el.classList.add('active');
+    renderProducts();
+  };
+  window.clearFilters = function() { document.querySelectorAll('.filter-cb').forEach(cb => cb.checked = false); renderProducts(); };
+  window.openDetail = function(id) {
+    const item = state.listings.find(l => l.id === id); if (!item) return;
+    document.getElementById('detailModal').innerHTML = `<div class="modal-header"><h3>Item</h3><button onclick="closeModal('detailOverlay')">✕</button></div><img src="${item.img}" style="width:100%; aspect-ratio:4/3; object-fit:cover;"><div style="padding:20px;"><h2 class="font-bold" style="font-size:22px;">${item.title}</h2><div class="font-bold" style="font-size:24px;color:var(--primary);margin:8px 0;">$${item.price}</div><p class="text-muted text-sm" style="margin-bottom:20px;">${item.description}</p><div class="flex gap-2"><button class="btn btn-primary" style="flex:1;" onclick="startChat('${item.id}')">Message</button><button class="btn btn-outline" style="flex:1;" onclick="addToCart('${item.id}')">Add to Cart</button></div></div>`;
+    openModal('detailOverlay');
+  };
+
+  window.openCart = function() { document.getElementById('cartOverlay').classList.remove('hidden'); document.getElementById('cartDrawer').classList.add('open'); renderCart(); };
+  window.closeCart = function() { document.getElementById('cartOverlay').classList.add('hidden'); document.getElementById('cartDrawer').classList.remove('open'); };
+  window.addToCart = function(id) { const item = state.listings.find(l => l.id === id); const ex = state.cart.find(c => c.id === id); if (ex) ex.qty++; else state.cart.push({ ...item, qty: 1 }); save('cart'); updateCartUI(); closeModal('detailOverlay'); openCart(); };
+  window.updateCartUI = function() { const badge = document.getElementById('cartBadge'); const qty = state.cart.reduce((s,i)=>s+i.qty,0); badge.textContent = qty; badge.classList.toggle('hidden', qty===0); };
+  window.renderCart = function() {
+    const container = document.getElementById('cartItems');
+    const total = state.cart.reduce((s,i)=>s+(i.price*i.qty),0);
+    document.getElementById('cartTotal').textContent = '$' + total.toFixed(2);
+    if (!state.cart.length) { container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);">Empty</div>'; return; }
+    container.innerHTML = state.cart.map(i => `<div class="flex gap-4" style="border-bottom:1px solid var(--border); padding:12px 0;"><img src="${i.img}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;"><div style="flex:1;"><div class="font-bold">${i.title}</div><div class="text-primary font-bold">$${i.price}</div><div class="flex gap-2 items-center" style="margin-top:8px;"><button class="btn btn-outline" style="min-height:30px;padding:0 8px;" onclick="updateQty('${i.id}',-1)">-</button><span>${i.qty}</span><button class="btn btn-outline" style="min-height:30px;padding:0 8px;" onclick="updateQty('${i.id}',1)">+</button></div></div></div>`).join('');
+  };
+  window.updateQty = function(id, d) { const item = state.cart.find(c=>c.id===id); item.qty += d; if (item.qty <= 0) state.cart = state.cart.filter(c=>c.id!==id); save('cart'); updateCartUI(); renderCart(); };
+
+  let checkoutStep = 1;
+  window.startCheckout = function() { if (!state.cart.length) return; closeCart(); checkoutStep = 1; openModal('checkoutOverlay'); renderCheckoutStep(); };
+  window.renderCheckoutStep = function() {
+    const body = document.getElementById('checkoutBody'), title = document.getElementById('checkoutTitle');
+    const total = state.cart.reduce((s,i)=>s+(i.price*i.qty),0);
+    if (checkoutStep === 1) { title.textContent = 'Step 1: Shipping'; body.innerHTML = `<div class="field"><label>Name</label><input class="input"></div><div class="field"><label>Address</label><input class="input"></div><button class="btn btn-primary btn-block" onclick="checkoutStep=2; renderCheckoutStep();">Continue</button>`; }
+    else if (checkoutStep === 2) { title.textContent = 'Step 2: Payment'; body.innerHTML = `<div class="field"><label>Card</label><input class="input" placeholder="4242..."></div><button class="btn btn-primary btn-block" onclick="checkoutStep=3; renderCheckoutStep();">Pay $${total.toFixed(2)}</button>`; }
+    else { title.textContent = 'Confirmed!'; const id = 'ORD-'+Math.floor(Math.random()*90000); state.orders.push({ id, items: [...state.cart], total, date: Date.now(), status: 'Processing' }); save('orders'); state.cart=[]; save('cart'); updateCartUI(); body.innerHTML = `<div style="text-align:center"><h2>✅</h2><p>Order #${id}</p><button class="btn btn-primary" onclick="closeModal('checkoutOverlay'); navigate('/profile');">View Orders</button></div>`; }
+  };
+
+  let sellStep = 1; let sellData = { title: '', price: 0, category: 'Electronics', desc: '', img: null };
+  window.openSell = function() { if (!state.user) { openModal('authOverlay'); return; } sellStep = 1; openModal('sellOverlay'); renderSellStep(); };
+  window.renderSellStep = function() {
+    const body = document.getElementById('sellBody'), title = document.getElementById('sellTitle');
+    if (sellStep === 1) { title.textContent = 'Step 1: Photo'; body.innerHTML = `<input type="file" class="input" id="sellImg"><div id="imgPreview"></div><button class="btn btn-primary btn-block" onclick="sellStep=2; renderSellStep();">Next</button>`; document.getElementById('sellImg').onchange = function(e) { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = ev => { sellData.img = ev.target.result; document.getElementById('imgPreview').innerHTML = `<img src="${ev.target.result}" style="width:100%">`; }; r.readAsDataURL(f); }; }
+    else if (sellStep === 2) { title.textContent = 'Step 2: Details'; body.innerHTML = `<div class="field"><label>Title</label><input class="input" id="fTitle"></div><div class="field"><label>Category</label><select class="input" id="fCat"><option>Electronics</option><option>Furniture</option></select></div><button class="btn btn-primary btn-block" onclick="sellData.title=document.getElementById('fTitle').value; sellData.category=document.getElementById('fCat').value; sellStep=3; renderSellStep();">Next</button>`; }
+    else { title.textContent = 'Step 3: Price'; body.innerHTML = `<div class="field"><label>Price</label><input type="number" class="input" id="fPrice"></div><button class="btn btn-accent btn-block" onclick="sellData.price=parseFloat(document.getElementById('fPrice').value); state.listings.unshift({id:'usr-'+Date.now(),title:sellData.title,price:sellData.price,category:sellData.category,seller:state.user.name,img:sellData.img||'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=500',status:'active',rating:5,reviews:0}); save('listings'); closeModal('sellOverlay'); renderProducts();">Publish</button>`; }
+  };
+
+  window.renderProfile = function() {
+    if (!state.user) return;
+    document.getElementById('profileName').textContent = state.user.name;
+    document.getElementById('profileEmail').textContent = state.user.email;
+    document.getElementById('profileAvatar').textContent = state.user.name.charAt(0).toUpperCase();
+    const mine = state.listings.filter(l => l.seller === state.user.name && l.status === 'active');
+    document.getElementById('myListings').innerHTML = mine.map(l => `<div class="card"><img src="${l.img}" class="card-img"><div class="card-body"><div class="card-title">${l.title}</div><div class="card-price">$${l.price}</div><div class="flex gap-2" style="margin-top:8px;"><button class="btn btn-outline" style="flex:1;min-height:30px;font-size:12px;" onclick="markAsSold('${l.id}')">Sold</button><button class="btn btn-danger" style="flex:1;min-height:30px;font-size:12px;" onclick="deleteListing('${l.id}')">Delete</button></div></div></div>`).join('');
+    document.getElementById('noListings').classList.toggle('hidden', mine.length > 0);
+    document.getElementById('orderHistory').innerHTML = state.orders.map(o => `<div class="order-card"><div class="flex justify-between font-bold"><span>#${o.id}</span><span class="text-muted">${new Date(o.date).toLocaleDateString()}</span></div><span class="badge" style="background:var(--primary);">${o.status}</span></div>`).join('');
+    document.getElementById('noOrders').classList.toggle('hidden', state.orders.length > 0);
+  };
+  window.switchProfileTab = function(tab, el) { document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); el.classList.add('active'); document.getElementById('tab-listings').classList.toggle('hidden', tab !== 'listings'); document.getElementById('tab-orders').classList.toggle('hidden', tab !== 'orders'); };
+  window.markAsSold = function(id) { const l = state.listings.find(x => x.id === id); if (l) { l.status = 'sold'; save('listings'); renderProfile(); } };
+  window.deleteListing = function(id) { if (!confirm('Delete?')) return; state.listings = state.listings.filter(x => x.id !== id); save('listings'); renderProfile(); };
+
+  function formatDate(date) { const d = new Date(date), today = new Date(), yest = new Date(); yest.setDate(yest.getDate() - 1); if (d.toDateString() === today.toDateString()) return 'Today'; if (d.toDateString() === yest.toDateString()) return 'Yesterday'; return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); }
+  function formatTime(date) { return new Date(date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); }
+
+  window.updateInboxBadge = function() {
+    let unread = 0;
+    state.threads.forEach(t => { if (!t.archived) unread += t.messages.filter(m => !m.read && m.senderId !== (state.user?.email || 'me')).length; });
+    const b = document.getElementById('inboxBadge');
+    b.textContent = unread; b.classList.toggle('hidden', unread === 0);
+  };
+  window.switchThreadTab = function(tab, el) { 
+    state.threadTab = tab; 
+    document.querySelectorAll('#page-inbox .thread-tab').forEach(el => el.classList.remove('active')); 
+    if (el) el.classList.add('active'); 
+    renderInbox(); 
+  };
+
+  window.renderInbox = function() {
+    const list = document.getElementById('threadList');
+    let threads = state.threads.filter(t => state.threadTab === 'inbox' ? !t.archived : t.archived);
+    if (!threads.length) { list.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--muted)">No ' + state.threadTab + ' messages</div>'; return; }
+    list.innerHTML = threads.map(t => {
+      const last = t.messages[t.messages.length-1];
+      const unread = t.messages.filter(m => !m.read && m.senderId !== (state.user?.email || 'me')).length;
+      return `<div class="thread-item ${state.activeThreadId === t.id ? 'active' : ''} ${t.blocked ? 'blocked' : ''}" data-thread-id="${t.id}" onclick="openThread('${t.id}')">
+        <img src="https://ui-avatars.com/api/?name=${t.sellerName}&background=random" style="width:48px;height:48px;border-radius:50%;flex-shrink:0;cursor:pointer;" onclick="event.stopPropagation(); openSellerProfileById('${t.id}')">
+        <div style="flex:1;min-width:0;">
+          <div class="flex justify-between"><div class="font-bold truncate seller-clickable" onclick="event.stopPropagation(); openSellerProfileById('${t.id}')">${t.sellerName} ${t.blocked ? '(Blocked)' : ''}</div><div class="text-xs text-muted">${last ? formatTime(last.time) : ''}</div></div>
+          <div class="text-sm text-muted truncate">${last ? last.text : 'No messages'}</div>
+          ${unread > 0 ? '<span class="badge" style="background:var(--primary); margin-top:4px;">' + unread + '</span>' : ''}
+        </div>
+      </div>`;
+    }).join('');
+  };
+
+  window.updateThreadInList = function(threadId) {
+    const item = document.querySelector(`.thread-item[data-thread-id="${threadId}"]`);
+    if (!item) return;
+    const t = state.threads.find(x => x.id === threadId);
+    if (!t) { item.remove(); return; }
+    item.className = `thread-item ${state.activeThreadId === t.id ? 'active' : ''} ${t.blocked ? 'blocked' : ''}`;
+    const nameEl = item.querySelector('.seller-clickable');
+    if (nameEl) nameEl.innerHTML = `${t.sellerName} ${t.blocked ? '(Blocked)' : ''}`;
+  };
+
+  window.updateChatMenuItems = function() {
+    const t = getThread(state.activeThreadId); if (!t) return;
+    const menu = document.getElementById('chatMenu');
+    let items = '';
+    if (t.archived) items += '<div class="attachment-option success" onclick="restoreThread()"><span class="icon">📤</span> Restore to Inbox</div>';
+    else items += '<div class="attachment-option" onclick="archiveThread()"><span class="icon">📥</span> Archive</div>';
+    items += '<div class="attachment-divider"></div>';
+    if (t.blocked) items += '<div class="attachment-option success" onclick="unblockUser()"><span class="icon">✅</span> Unblock User</div>';
+    else items += '<div class="attachment-option danger" onclick="blockUser()"><span class="icon">🚫</span> Block User</div>';
+    items += '<div class="attachment-option danger" onclick="deleteThread()"><span class="icon">🗑️</span> Delete Conversation</div>';
+    menu.innerHTML = items;
+  };
+
+  window.updateChatHeaderBadge = function() {
+    const t = getThread(state.activeThreadId); if (!t) return;
+    const nameEl = document.getElementById('chatSellerName');
+    let label = t.sellerName;
+    if (t.archived) label += ' <span style="font-size:10px;color:var(--muted);background:var(--bg);padding:2px 6px;border-radius:4px;margin-left:6px;font-weight:600;">Archived</span>';
+    if (t.blocked) label += ' <span style="font-size:10px;color:var(--danger);background:#fee2e2;padding:2px 6px;border-radius:4px;margin-left:6px;font-weight:600;">Blocked</span>';
+    nameEl.innerHTML = label;
+  };
+
+  window.openThread = function(id) {
+    const t = getThread(id); if (!t) return;
+    state.activeThreadId = id;
+    t.messages.forEach(m => { if (m.senderId !== (state.user?.email || 'me')) m.read = true; });
+    save('threads'); updateInboxBadge(); renderInbox();
+    document.getElementById('inboxLayout').classList.add('mobile-chat-open');
+    document.getElementById('chatBackBtn').style.display = window.innerWidth < 768 ? 'block' : 'none';
+    document.getElementById('chatEmpty').classList.add('hidden');
+    document.getElementById('chatActive').classList.remove('hidden');
+    document.getElementById('chatSellerAvatar').src = 'https://ui-avatars.com/api/?name=' + t.sellerName + '&background=random';
+    document.getElementById('chatInput').value = '';
+    updateChatMenuItems();
+    updateChatHeaderBadge();
+    const inputArea = document.getElementById('chatInputArea'), blockedBanner = document.getElementById('chatBlockedBanner');
+    if (t.blocked) { inputArea.classList.add('hidden'); blockedBanner.classList.remove('hidden'); }
+    else { inputArea.classList.remove('hidden'); blockedBanner.classList.add('hidden'); }
+    let html = '', lastDate = '', lastSender = null, groupOpen = false;
+    t.messages.forEach((m, i) => {
+      const mDate = formatDate(m.time);
+      if (mDate !== lastDate) { if (groupOpen) { html += '</div>'; groupOpen = false; } html += '<div class="date-divider"><span>' + mDate + '</span></div>'; lastDate = mDate; lastSender = null; }
+      const isMe = m.senderId === 'me' || m.senderId === state.user?.email;
+      const isSame = lastSender === m.senderId;
+      const isLast = i === t.messages.length - 1 || t.messages[i+1].senderId !== m.senderId;
+      if (!isSame) { if (groupOpen) html += '</div>'; html += '<div class="msg-group ' + (isMe ? 'me' : 'them') + '">'; groupOpen = true; }
+      html += '<div class="msg-bubble">' + (m.image ? '<img src="' + m.image + '">' : '') + (m.text || '') + '</div>';
+      if (isLast) html += '<div class="msg-meta" style="justify-content:' + (isMe ? 'flex-end' : 'flex-start') + '">' + formatTime(m.time) + '</div>';
+      if (isLast && groupOpen) { html += '</div>'; groupOpen = false; }
+      lastSender = m.senderId;
+    });
+    document.getElementById('chatMessages').innerHTML = html;
+    setTimeout(() => { const c = document.getElementById('chatMessages'); c.scrollTop = c.scrollHeight; }, 50);
+  };
+
+  window.closeChatMobile = function() {
+    document.getElementById('inboxLayout').classList.remove('mobile-chat-open');
+    document.getElementById('chatEmpty').classList.remove('hidden');
+    document.getElementById('chatActive').classList.add('hidden');
+    document.getElementById('chatInput').value = '';
+    state.activeThreadId = null;
+  };
+
+  window.sendMessage = function() {
+    const input = document.getElementById('chatInput');
+    if (!input.value.trim() || !state.activeThreadId) return;
+    const t = getThread(state.activeThreadId); if (!t || t.blocked) return;
+    t.messages.push({ id: 'm'+Date.now(), senderId: state.user?.email || 'me', text: input.value, time: Date.now(), read: false });
+    input.value = ''; save('threads'); openThread(state.activeThreadId);
+  };
+
+  window.toggleInboxMenu = function(e) { if (e) e.stopPropagation(); document.getElementById('inboxMenu').classList.toggle('hidden'); document.getElementById('chatMenu').classList.add('hidden'); };
+  window.toggleChatMenu = function(e) { if (e) e.stopPropagation(); document.getElementById('chatMenu').classList.toggle('hidden'); document.getElementById('inboxMenu').classList.add('hidden'); document.getElementById('attachmentMenu').classList.add('hidden'); };
+  window.toggleAttachmentMenu = function() { document.getElementById('attachmentMenu').classList.toggle('hidden'); document.getElementById('chatMenu').classList.add('hidden'); document.getElementById('inboxMenu').classList.add('hidden'); };
+  window.handleChatImage = function(e) {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader(); reader.onload = (ev) => { const t = getThread(state.activeThreadId); if (t) { t.messages.push({ id: 'm'+Date.now(), senderId: state.user?.email || 'me', image: ev.target.result, time: Date.now(), read: false }); save('threads'); openThread(state.activeThreadId); } };
+    reader.readAsDataURL(file);
+    document.getElementById('attachmentMenu').classList.add('hidden');
+  };
+  window.promptOffer = function() {
+    document.getElementById('attachmentMenu').classList.add('hidden');
+    const amount = prompt('Offer amount ($):'); if (!amount || isNaN(amount)) return;
+    const t = getThread(state.activeThreadId); if (t) { t.messages.push({ id: 'm'+Date.now(), senderId: state.user?.email || 'me', type: 'offer', amount: parseFloat(amount), status: 'pending', time: Date.now(), read: false }); save('threads'); openThread(state.activeThreadId); }
+  };
+
+  window.archiveThread = function() {
+    const t = getThread(state.activeThreadId); if (!t) return;
+    if (t.archived) { showToast('Already archived'); return; }
+    t.archived = true; save('threads');
+    document.getElementById('chatMenu').classList.add('hidden');
+    updateChatMenuItems(); updateChatHeaderBadge(); updateThreadInList(t.id); updateInboxBadge();
+    showToast('📥 Archived', 'success');
+  };
+  window.restoreThread = function() {
+    const t = getThread(state.activeThreadId); if (!t) return;
+    if (!t.archived) { showToast('Already in inbox'); return; }
+    t.archived = false; save('threads');
+    document.getElementById('chatMenu').classList.add('hidden');
+    updateChatMenuItems(); updateChatHeaderBadge(); updateThreadInList(t.id); updateInboxBadge();
+    showToast('📤 Restored to inbox', 'success');
+  };
+  
+  window.deleteThread = function() {
+    if (!confirm('Delete?')) return;
+    document.getElementById('chatMenu').classList.add('hidden');
+    const chatView = document.getElementById('chatView');
+    const rect = chatView.getBoundingClientRect();
+    const container = document.createElement('div');
+    container.className = 'shatter-container';
+    container.style.width = rect.width + 'px';
+    container.style.height = rect.height + 'px';
+    document.body.appendChild(container);
+    
+    const cols = 8, rows = 14;
+    const cellW = rect.width / cols;
+    const cellH = rect.height / rows;
+    
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (Math.random() < 0.15) continue;
+        const shard = document.createElement('div');
+        shard.className = 'shard';
+        const w = cellW * (0.85 + Math.random() * 0.3);
+        const h = cellH * (0.85 + Math.random() * 0.3);
+        const x = rect.left + c * cellW + (Math.random() - 0.5) * cellW * 0.2;
+        const y = rect.top + r * cellH + (Math.random() - 0.5) * cellH * 0.2;
+        shard.style.left = x + 'px'; shard.style.top = y + 'px'; shard.style.width = w + 'px'; shard.style.height = h + 'px';
+        shard.style.borderRadius = (Math.random() * 4) + 'px';
+        const baseRot = (Math.random() - 0.5) * 12;
+        shard.style.transform = `rotate(${baseRot}deg)`;
+        container.appendChild(shard);
+        
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 80 + Math.random() * 250;
+        const dx = Math.cos(angle) * distance;
+        const dy = Math.sin(angle) * distance + 100;
+        const rot = (Math.random() - 0.5) * 720;
+        const duration = 700 + Math.random() * 500;
+        const delay = Math.random() * 200;
+        
+        shard.animate([
+          { transform: `translate(0, 0) rotate(${baseRot}deg)`, opacity: 1, filter: 'blur(0px)' },
+          { transform: `translate(${dx * 0.6}px, ${dy * 0.4}px) rotate(${rot * 0.4 + baseRot}deg)`, opacity: 0.9, filter: 'blur(2px)', offset: 0.4 },
+          { transform: `translate(${dx}px, ${dy}px) rotate(${rot + baseRot}deg) scale(0.6)`, opacity: 0, filter: 'blur(12px)' }
+        ], { duration: duration, delay: delay, easing: 'cubic-bezier(0.4, 0, 0.8, 1)', fill: 'forwards' });
+      }
+    }
+    
+    const steam = document.createElement('div');
+    steam.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:201;';
+    for (let i = 0; i < 12; i++) {
+      const puff = document.createElement('div');
+      const size = 100 + Math.random() * 200;
+      puff.style.cssText = `position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:radial-gradient(circle, rgba(240,245,255,0.9) 0%, rgba(240,245,255,0) 70%);left:${rect.left + Math.random() * rect.width}px;top:${rect.top + Math.random() * rect.height}px;filter:blur(${20 + Math.random() * 20}px);animation:steamUp ${1.2 + Math.random() * 0.8}s ease-out forwards;animation-delay:${Math.random() * 0.4}s;opacity:0;`;
+      steam.appendChild(puff);
+    }
+    document.body.appendChild(steam);
+    chatView.style.opacity = '0';
+    showToast('💥 Conversation shattered');
+    
+    setTimeout(function() {
+      const threadId = state.activeThreadId;
+      state.threads = state.threads.filter(x => x.id !== threadId);
+      save('threads');
+      state.activeThreadId = null;
+      container.remove(); steam.remove(); chatView.style.opacity = '';
+      closeChatMobile(); renderInbox(); updateInboxBadge();
+    }, 1400);
+  };
+
+  window.markAllRead = function() { state.threads.forEach(t => t.messages.forEach(m => { if (m.senderId !== (state.user?.email || 'me')) m.read = true; })); save('threads'); updateInboxBadge(); renderInbox(); document.getElementById('inboxMenu').classList.add('hidden'); showToast('✅ All marked as read', 'success'); };
+  window.deleteAllArchived = function() { if (!confirm('Delete all archived conversations?')) return; state.threads = state.threads.filter(t => !t.archived); save('threads'); renderInbox(); updateInboxBadge(); document.getElementById('inboxMenu').classList.add('hidden'); showToast('🗑️ All archived deleted'); };
+
+  window.blockUser = function() {
+    const t = getThread(state.activeThreadId); if (!t) return;
+    t.blocked = true; save('threads');
+    document.getElementById('chatMenu').classList.add('hidden');
+    updateChatMenuItems(); updateChatHeaderBadge();
+    const inputArea = document.getElementById('chatInputArea'), blockedBanner = document.getElementById('chatBlockedBanner');
+    if (inputArea) inputArea.classList.add('hidden');
+    if (blockedBanner) blockedBanner.classList.remove('hidden');
+    updateThreadInList(t.id);
+    showToast('🚫 User blocked');
+  };
+  window.unblockUser = function() {
+    const t = getThread(state.activeThreadId); if (!t) return;
+    t.blocked = false; save('threads');
+    document.getElementById('chatMenu').classList.add('hidden');
+    updateChatMenuItems(); updateChatHeaderBadge();
+    const inputArea = document.getElementById('chatInputArea'), blockedBanner = document.getElementById('chatBlockedBanner');
+    if (inputArea) inputArea.classList.remove('hidden');
+    if (blockedBanner) blockedBanner.classList.add('hidden');
+    updateThreadInList(t.id);
+    showToast('✅ User unblocked', 'success');
+  };
+
+  window.openSellerProfile = function() {
+    const t = getThread(state.activeThreadId); if (!t) return;
+    document.getElementById('sellerProfileAvatar').src = 'https://ui-avatars.com/api/?name=' + t.sellerName + '&background=random&size=128';
+    document.getElementById('sellerProfileName').textContent = t.sellerName;
+    const btn = document.getElementById('sellerBlockBtn');
+    if (t.blocked) { btn.textContent = 'Unblock User'; btn.className = 'btn btn-success btn-block'; }
+    else { btn.textContent = 'Block User'; btn.className = 'btn btn-danger btn-block'; }
+    openModal('sellerProfileOverlay');
+  };
+  window.openSellerProfileById = function(threadId) {
+    const t = state.threads.find(x => x.id === threadId); if (!t) return;
+    state.activeThreadId = threadId;
+    document.getElementById('sellerProfileAvatar').src = 'https://ui-avatars.com/api/?name=' + t.sellerName + '&background=random&size=128';
+    document.getElementById('sellerProfileName').textContent = t.sellerName;
+    const btn = document.getElementById('sellerBlockBtn');
+    if (t.blocked) { btn.textContent = 'Unblock User'; btn.className = 'btn btn-success btn-block'; }
+    else { btn.textContent = 'Block User'; btn.className = 'btn btn-danger btn-block'; }
+    openModal('sellerProfileOverlay');
+  };
+  window.toggleBlockFromProfile = function() {
+    const t = getThread(state.activeThreadId); if (!t) { closeModal('sellerProfileOverlay'); return; }
+    t.blocked = !t.blocked; save('threads');
+    closeModal('sellerProfileOverlay');
+    updateChatMenuItems(); updateChatHeaderBadge();
+    const inputArea = document.getElementById('chatInputArea'), blockedBanner = document.getElementById('chatBlockedBanner');
+    if (inputArea && blockedBanner) {
+      if (t.blocked) { inputArea.classList.add('hidden'); blockedBanner.classList.remove('hidden'); }
+      else { inputArea.classList.remove('hidden'); blockedBanner.classList.add('hidden'); }
+    }
+    updateThreadInList(t.id);
+    showToast(t.blocked ? '🚫 User blocked' : '✅ User unblocked', t.blocked ? '' : 'success');
+  };
+
+  window.startChat = function(listingId) {
+    closeModal('detailOverlay');
+    const l = state.listings.find(x => x.id === listingId); if (!l) return;
+    let t = state.threads.find(x => x.listingId === listingId && x.buyerId === (state.user?.email || 'demo'));
+    if (!t) { t = { id: 'thread-'+Date.now(), listingId, buyerId: state.user?.email || 'demo', sellerId: l.seller, sellerName: l.seller, listingTitle: l.title, messages: [], archived: false, blocked: false }; state.threads.unshift(t); save('threads'); }
+    navigate('/inbox'); setTimeout(() => openThread(t.id), 100);
+  };
+
+  window.onload = init;
+</script>
+
+<style>
+@keyframes steamUp {
+  0% { transform: translateY(0) scale(0.4); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translateY(-200px) scale(2); opacity: 0; }
+}
+</style>
+</body>
+              </html>
